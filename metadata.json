@@ -1,1 +1,10 @@
-{"name": "Spotify Song Label", "description": "Show the currently playing song on Spotify in the top bar", "uuid": "gnomespotifylabel@mheine.github.com", "shell-version": ["3.36.4"]}
+{
+    "description": "Show song label and foreward and backward songs button. Click the label to stop the song",
+    "name": "Spotify Manager",
+    "shell-version": [
+        "3.36.4"
+    ],
+    "url": "https://github.com/idogada9087/gnome-shell-spotify-label",    
+    "uuid": "spotify-manager@ido.github.com",    
+    "version": "1"
+}

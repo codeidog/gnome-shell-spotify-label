@@ -11,193 +11,181 @@ const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 
 //"User-defined" constants. If you've stumbled upon this extension, these values are the most likely you'd like to change.
-let LEFT_PADDING, MAX_STRING_LENGTH, REFRESH_RATE, FRIENDLY_GREETING, ARTIST_FIRST, EXTENSION_PLACE, EXTENSION_INDEX, TOGGLE_WINDOW, gschema, lastExtensionPlace, lastExtensionIndex;
-var settings, onLeftPaddingChanged, onExtensionPlaceChanged, onExtensionIndexChanged, onToggleModeChanged;
+let LEFT_PADDING, MAX_STRING_LENGTH, REFRESH_RATE, FRIENDLY_GREETING, ARTIST_FIRST,  EXTENSION_PLACE, EXTENSION_INDEX, gschema, lastExtensionPlace, lastExtensionIndex;
+var settings, onLeftPaddingChanged, onExtensionPlaceChanged, onExtensionIndexChanged;
 let _httpSession;
 let spMenu;
-
-const SpotifyLabel = new Lang.Class({
-	Name: 'SpotifyLabel',
-	Extends: PanelMenu.Button,
-
-	_init: function (settings) {
-		this.parent(0.0, "Spotify Label", false);
-
-		this.settings = settings;
-
-		this.buttonText = new St.Label({
-			text: _("Loading..."),
-			style: "padding-left: " + this.settings.get_int('left-padding') + "px;",
-			y_align: Clutter.ActorAlign.CENTER,
-			x_align: Clutter.ActorAlign.FILL
-		});
-
-		// Listen for update of padding in settings
-		onLeftPaddingChanged = this.settings.connect(
-			'changed::left-padding',
-			this._leftPaddingChanged.bind(this)
-		);
-
-		// Listen for changes in the toggle feature
-		onToggleModeChanged = this.settings.connect(
-			'changed::toggle-window',
-			this._toggleModeChanged.bind(this)
-		);
-		this._toggleModeChanged(); // checks and connects the toggle button
-
-		// Create a new layout, add the text and add the actor to the layout
-		let topBox = new St.BoxLayout();
-		topBox.add(this.buttonText);
-		this.actor.add_actor(topBox);
-
-		//Place the actor/label at the "end" (rightmost) position within the left box
-		children = Main.panel._leftBox.get_children();
-		Main.panel._leftBox.insert_child_at_index(this.actor, children.length)
-
-		this._refresh();
-	},
-
-	// Update left padding of this.buttonText according to new value set in settings
-	_leftPaddingChanged: function() {
-		this.buttonText.set_style("padding-left: " + this.settings.get_int('left-padding') + "px;");
-	},
-
-	// Update labelEventListener if toggle mode changes
-	_toggleModeChanged: function () {
-		spotifyWindow = nonSpotifyWindow = null;
-		if (settings.get_boolean('toggle-window')) {
-			this.toggleModeID = this.actor.connect('button-press-event', toggleWindow);
-		} else {
-			this.actor.disconnect(this.toggleModeID);
-		}
-	},
-
-	//Defind the refreshing function and set the timeout in seconds
-	_refresh: function () {
-		this._loadData(this._refreshUI);
-		this._removeTimeout();
-		this._timeout = Mainloop.timeout_add_seconds(this.settings.get_int('refresh-rate'), Lang.bind(this, this._refresh));
-		return true;
-	},
-
-	_loadData: function () {
-
-		let [res, out, err, status] = [];
+let panel, songButton, nextbutton, previousbutton, timeout, animation;
+let songlabel = "";
+let max_int_length = 30;
+let chr_scroll = 1, scroll_index = 0;
+let artist_first= true;
+function loadData()
+{
+    //log("Spotify: Loading data")
+    let [res, out, err, status] = [];
 		try {
 			//Use GLib to send a dbus request with the expectation of receiving an MPRIS v2 response.
 			[res, out, err, status] = GLib.spawn_command_line_sync("dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata");
 		}
 		catch(err) {
-			this._refreshUI("Error. Please check system logs.");
+			refreshUI("Error. Please check system logs.");
+			global.log("spotifylabel: res: " + res + " -- status: " + status + " -- err:" + err);
+			return;
+		}		
+		var labelstring = parseSpotifyData(out.toString());
+		if(labelstring.length == 0)
+		{
+			labelstring = 'No song is currently playing'
+		}
+		songlabel = refreshUI(labelstring);
+        return true;
+}
+
+function refreshUI(data)
+{
+    //log("Spotify: setting the ui")    
+    let txt = data.toString()
+    //log("spotify: value to set is" +txt)
+	songButton.set_label(txt)
+	return txt;
+}
+
+function textScrollAnimation()
+{	
+	try{	
+	if(songlabel.length > max_int_length)
+	{				
+		//Reached end of string
+		if(scroll_index > songlabel.length)
+		{
+			scroll_index = 0;
+		}
+		let scroll_max = scroll_index + max_int_length;
+		let display = "";
+		if(scroll_max > songlabel.length)
+		{						
+			display = " " + songlabel.substring(0, Math.abs(scroll_max - songlabel.length) )
+			scroll_max = songlabel.length;			
+			log("beging: " + display)
+		}						
+		display = songlabel.substring(scroll_index, scroll_max) + display;
+		log("Index: " + scroll_index + " Scroll_max: " + scroll_max);
+		log("String: " + display);
+		log(" ")
+		songButton.set_label(display);
+		scroll_index += chr_scroll;
+	}
+	else
+	{				
+		songButton.set_label(songlabel);
+	}
+	return true;
+}
+	catch(err)
+	{
+		songButton.set_label("An error occurred");
+		log("IdoSpotifyManager: " + err);
+		return;
+	}
+
+}
+//Open the Spotify application
+function openApp()
+{
+    throw "Not implemented"
+}
+
+function sendDBusCommand(command)
+{
+ //   log("Spotify: performing action - " + command.toString())
+   // log("Spotify: accessible name is: " + command.accessible_name.toString())
+    let [res, out, err, status] = [];
+		try {
+			//Use GLib to send a dbus request with the expectation of receiving an MPRIS v2 response.
+			[res, out, err, status] = GLib.spawn_command_line_sync("dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player."+command.accessible_name.toString());
+		}
+		catch(err) {
+			refreshUI("Error. Please check system logs.");
 			global.log("spotifylabel: res: " + res + " -- status: " + status + " -- err:" + err);
 			return;
 		}
-
-		var labelstring = parseSpotifyData(out.toString());
-		this._refreshUI(labelstring);
-	},
-
-	_refreshUI: function (data) {
-		let txt = data.toString();
-		this.buttonText.set_text(txt);
-	},
-
-	_removeTimeout: function () {
-		if (this._timeout) {
-			Mainloop.source_remove(this._timeout);
-			this._timeout = null;
-		}
-	},
-
-	stop: function () {
-		if (_httpSession !== undefined)
-			_httpSession.abort();
-		_httpSession = undefined;
-
-		if (this._timeout)
-			Mainloop.source_remove(this._timeout);
-		this._timeout = undefined;
-
-		this.menu.removeAll();
-	}
 }
-);
-
-function init() {
+function init()
+{
+    
 }
 
-function enable() {
 
-	// Load schema
-	gschema = Gio.SettingsSchemaSource.new_from_directory(
-        Me.dir.get_child('schemas').get_path(),
-        Gio.SettingsSchemaSource.get_default(),
-        false
-    );
-
-	// Load settings
-    settings = new Gio.Settings({
-        settings_schema: gschema.lookup('org.gnome.shell.extensions.spotifylabel', true)
+function enable()
+{    
+	//Create the panel that will hold all the elements
+    //log("creating the elements")
+    panel = new St.BoxLayout({
+		style_class: "panel"
+		
 	});
-
-	// Mandatory for removing the spMenu from the correct location
-	this.lastExtensionPlace = settings.get_string('extension-place');
-	this.lastExtensionIndex = settings.get_int('extension-index');
-
-	onExtensionPlaceChanged = this.settings.connect(
-		'changed::extension-place',
-		this.onExtensionLocationChanged.bind(this)
-	);
-
-	onExtensionIndexChanged = this.settings.connect(
-		'changed::extension-index',
-		this.onExtensionLocationChanged.bind(this)
-	);
-
-	let spotifyWindow, nonSpotifyWindow; // used by the switcher - greyed out in most editors
-
-	spMenu = new SpotifyLabel(settings);
-	Main.panel.addToStatusArea('sp-indicator', spMenu, settings.get_int('extension-index'), settings.get_string('extension-place'));
+	//Create the button that will display artist - song and allow play plause when clicking
+	
+	songButton = new St.Button({
+		accessible_name: "PlayPause",
+		y_align: Clutter.ActorAlign.CENTER,
+		x_align: Clutter.ActorAlign.FILL,
+		label: "No song is currently playing",
+		style_class: "songlabel"	
+	});		    
+    
+    //Create the next song button
+		nextbutton = new St.Button({
+			style_class: "mediabtn",		
+			accessible_name: "Next",
+			y_align: Clutter.ActorAlign.CENTER,
+			x_align: Clutter.ActorAlign.FILL
+		});		
+    //Create and attach the icon to the button
+        nextbutton.child = new St.Icon({
+            gicon: Gio.icon_new_for_string(Me.dir.get_child('icons').get_path() + "/" + "next.svg"),
+            style_class: "media-control"
+        });
+    //Create the previous song buttong
+        previousbutton = new St.Button({
+            style_class: "mediabtn",		
+			accessible_name: "Previous",
+			y_align: Clutter.ActorAlign.CENTER,
+			x_align: Clutter.ActorAlign.FILL
+        })
+    //Create and attach the icon to the button
+    previousbutton.child = new St.Icon({
+            gicon: Gio.icon_new_for_string(Me.dir.get_child('icons').get_path() + "/" + "previous.svg"),
+            style_class: "media-control"
+        });
+    //Attach a method to each button
+        previousbutton.connect('clicked',sendDBusCommand);
+		nextbutton.connect('clicked',sendDBusCommand);
+		songButton.connect('clicked',sendDBusCommand);
+	panel.add(previousbutton);
+	//panel.add(playpause)
+    panel.add(songButton);
+	panel.add(nextbutton);
+	
+    //log("appending the the elemts to the ui")    
+    Main.panel._rightBox.insert_child_at_index(panel,0);
+	timeout = Mainloop.timeout_add_seconds(2.0,loadData)
+	//animation = Mainloop.timeout_add(200, textScrollAnimation);
 }
 
-function disable() {
-	this.settings.disconnect(onLeftPaddingChanged);
-	this.settings.disconnect(onExtensionPlaceChanged);
-	this.settings.disconnect(onExtensionIndexChanged);
-	this.settings.disconnect(onToggleModeChanged);
-
-	spMenu.stop();
-	spMenu.destroy();
+function disable()
+{
+	Mainloop.source_remove(timeout);
+	//Mainloop.source_remove(animation);
+    Main.panel._rightBox.remove_child(panel);    
 }
-
-// Removes spMenu from correct location and then adds it to new one
-function onExtensionLocationChanged (settings, key) {
-	if (this.lastExtensionPlace !== this.settings.get_string('extension-place')
-			|| this.lastExtensionIndex !== this.settings.get_int('extension-index')) {
-				if (this.lastExtensionPlace === 'left') {
-					Main.panel._leftBox.remove_actor(spMenu.container);
-				} else if (this.lastExtensionPlace === 'center') {
-					Main.panel._centerBox.remove_actor(spMenu.container);
-				} else {
-					Main.panel._rightBox.remove_actor(spMenu.container);
-				}
-				this.lastExtensionPlace = this.settings.get_string('extension-place');
-				this.lastExtensionIndex = this.settings.get_int('extension-index');
-				if (this.lastExtensionPlace === 'left') {
-					Main.panel._leftBox.insert_child_at_index(spMenu.container, this.lastExtensionIndex);
-				} else if (this.lastExtensionPlace === 'center') {
-					Main.panel._centerBox.insert_child_at_index(spMenu.container, this.lastExtensionIndex);
-				} else {
-					Main.panel._rightBox.insert_child_at_index(spMenu.container, this.lastExtensionIndex);
-				}
-			}
-}
-
 //Spotify uses MIPRIS v2, and as such the metadata fields are prefixed by 'xesam'
 //We use this info to set our limits,and assume the data is properly escaped within quotes.
 function parseSpotifyData(data) {
-	if(!data)
-		return createGreeting()
+    //log("spotify: Parsing spotify data\n"+data)
+	if(data.length <= 0)
+		return "No spotify data found"
 
 	var titleBlock = data.substring(data.indexOf("xesam:title"));
 	var title = titleBlock.split("\"")[2]
@@ -205,93 +193,22 @@ function parseSpotifyData(data) {
 	var artistBlock = data.substring(data.indexOf("xesam:artist"));
 	var artist = artistBlock.split("\"")[2]
 
-	//If the delimited '-' is in the title, we assume that it's remix, and encapsulate the end in brackets.
+	//If the delimited '-' is  in the title, we assume that it's remix, and encapsulate the end in brackets.
 	if(title.includes("-"))
 		title = title.replace("- ", "(") + ")";
 
 	//If the name of either string is too long, cut off and add '...'
-	if (artist.length > this.settings.get_int('max-string-length'))
-		artist = artist.substring(0, this.settings.get_int('max-string-length')) + "...";
+	if (artist.length > max_int_length) //this.settings.get_int('max-string-length'))
+		artist = artist.substring(0, max_int_length) +"..."; //this.settings.get_int('max-string-length')) + "...";
 
-	if (title.length > this.settings.get_int('max-string-length'))
-		title = title.substring(0, this.settings.get_int('max-string-length')) + "...";
+	if (title.length > max_int_length) //this.settings.get_int('max-string-length'))
+		title = title.substring(0, max_int_length) +"..."; //this.settings.get_int('max-string-length')) + "...";
 
 	if (title.includes("xesam") || artist.includes("xesam"))
 		return "Loading..."
 
-	if (this.settings.get_boolean('artist-first')) {
+	if (artist_first){//this.settings.get_boolean('artist-first')) {
     	return (artist + " - " + title);
   	}
   	return (title + " - " + artist);
-}
-
-function toggleWindow() {
-	if (spotifyWindow && spotifyWindow.has_focus()){ // Spotify is focused
-		if (nonSpotifyWindow)
-			Main.activateWindow(nonSpotifyWindow);
-		// else do nothing
-
-	} else { // Spotify not focused, first press, multiple Spotify windows - all cases
-		nonSpotifyWindow = spotifyWindow = null; // nonSpotifyWindow changes OR another spotifyWindow is active
-		let windowActors = global.get_window_actors();
-		for (let windowActor of windowActors) {
-			if (typeof windowActor.get_meta_window === "function") {
-				if (windowActor.get_meta_window().get_wm_class() === 'Spotify')
-					spotifyWindow = windowActor.get_meta_window();
-				else if (windowActor.get_meta_window().has_focus())
-					nonSpotifyWindow = windowActor.get_meta_window();
-
-				if (spotifyWindow && nonSpotifyWindow) // both found
-					break;
-			}
-		}
-		Main.activateWindow(spotifyWindow); // switch to Spotify
-	}
-}
-
-let genres = ["DnB", "Synthwave", "Dubstep", "Pop", "House", "Hardstyle", "Rock", "8-bit", "Classical", "Electro"]
-let currentGenre = genres[Math.floor(Math.random() * genres.length)];
-let genreChanged = false;
-
-function createGreeting() {
-	if (!this.settings.get_boolean('friendly-greeting'))
-		return ""
-
-	var current_hour = new Date().getHours();
-
-	if(new Date().getMinutes() % 5 == 0 && !genreChanged) {
-		currentGenre = genres[Math.floor(Math.random() * genres.length)];
-		genreChanged = true;
-	}
-	else if(new Date().getMinutes() % 5 != 0)
-		genreChanged = false;
-
-	if (current_hour < 4)
-		return "A bit of late night coding and " + currentGenre + " music?";
-
-	else if (current_hour < 7)
-		return "You're up early, get at 'em!"
-
-	else if (current_hour < 10)
-		return "Start the day properly with some " + currentGenre + " music?";
-
-	else if (current_hour < 12)
-		return "What's todays soundtrack? A bit of " + currentGenre + "?";
-
-	else if (current_hour == 12)
-		return "" + currentGenre + " music and bit of lunch?";
-
-	else if (current_hour < 15)
-		return "Is that " + currentGenre + " music on the radio? Let's go!";
-
-	else if (current_hour < 18)
-		return "Isn't work progressing nicely with some " + currentGenre + " music?";
-
-	else if (current_hour < 21)
-		return "Free time and " + currentGenre + "? Name a better duo.";
-
-	else
-		return "Can " + currentGenre + " be considered a lullaby? Sure!"
-
-
 }
