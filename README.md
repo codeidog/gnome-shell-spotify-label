@@ -2,7 +2,7 @@
 
 This is a quick and dirty GNOME shell extension to show the currently playing song on Spotify and navigate through the current playist.
 
-## Example
+## Example  
 ![alt text](example.png "A screenshot  of the label in action")
 
 ## Installation
