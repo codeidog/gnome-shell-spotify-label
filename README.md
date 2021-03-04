@@ -6,11 +6,10 @@ This is a quick and dirty GNOME shell extension to show the currently playing so
 ![alt text](example.png "A screenshot  of the label in action")
 
 ## Installation
-This extension is available for download/installation on the [GNOME Extensions Webpage](https://extensions.gnome.org/extension/2603/spotify-label/)
 
 It is also possible to download it "manually" by cloning the repository to `~/.local/share/gnome-shell/extensions`, restarting GNOME and enabling the extension using 
 ``` bash
-gnome-shell-extension-tool -e spotify-manager@ido.github.com.github.com
+gnome-shell-extension-tool -e spotify-manager@ido.github.com
 ```
 This approach is not recommended, and assumes you know your way around the GNOME Extensions ecosystem.
 

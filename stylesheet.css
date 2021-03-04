@@ -3,6 +3,14 @@
     width: 20px;
     height: 20px;    
 }
+.songlabel:checked{
+    
+    color:  #55af53
+}
+.songlabel{
+    font-weight: bolder;
+    color:  #ad2c29;    
+}
 .mediabtn:hover{
     background-color: gray;
 }

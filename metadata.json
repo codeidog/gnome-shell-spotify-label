@@ -2,7 +2,8 @@
     "description": "Show song label and foreward and backward songs button. Click the label to stop the song",
     "name": "Spotify Manager",
     "shell-version": [
-        "3.36.4"
+        "3.36.4",
+        "3.36.8"
     ],
     "url": "https://github.com/idogada9087/gnome-shell-spotify-label",    
     "uuid": "spotify-manager@ido.github.com",    

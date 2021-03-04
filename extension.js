@@ -36,7 +36,7 @@ function loadData()
 		var labelstring = parseSpotifyData(out.toString());
 		if(labelstring.length == 0)
 		{
-			labelstring = 'No song is currently playing'
+			labelstring = 'No song is currently playing'						
 		}
 		songlabel = refreshUI(labelstring);
         return true;
@@ -47,7 +47,7 @@ function refreshUI(data)
     //log("Spotify: setting the ui")    
     let txt = data.toString()
     //log("spotify: value to set is" +txt)
-	songButton.set_label(txt)
+	songButton.set_label(txt)	
 	return txt;
 }
 
@@ -132,7 +132,8 @@ function enable()
 		y_align: Clutter.ActorAlign.CENTER,
 		x_align: Clutter.ActorAlign.FILL,
 		label: "No song is currently playing",
-		style_class: "songlabel"	
+		style_class: "songlabel",
+		toggle_mode: true
 	});		    
     
     //Create the next song button
@@ -170,9 +171,35 @@ function enable()
 	
     //log("appending the the elemts to the ui")    
     Main.panel._rightBox.insert_child_at_index(panel,0);
+	inittoggle()
 	timeout = Mainloop.timeout_add_seconds(2.0,loadData)
 	//animation = Mainloop.timeout_add(200, textScrollAnimation);
 }
+
+function inittoggle()
+{
+	loadData()
+	var checked= false
+	let [res, out, err, status] = [];
+		try {
+			//Get the current play staus.
+			[res, out, err, status] = GLib.spawn_command_line_sync("dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:PlaybackStatus");
+			var outstring = out.toString();
+			var state = outstring.split("\"")[1];
+			if(state.toLowerCase() === 'playing'){
+				checked = true
+			}
+		}
+		//Spotify not playing
+		catch(err) {			
+			global.log("spotifylabel: sporify not playing");			
+		}
+		finally{
+			global.log("spotifylabel: Setting checked to " + checked)
+			songButton.set_checked(checked)
+		}
+}
+
 
 function disable()
 {
@@ -185,7 +212,11 @@ function disable()
 function parseSpotifyData(data) {
     //log("spotify: Parsing spotify data\n"+data)
 	if(data.length <= 0)
+	{
+		songButton.set_checked(false)
 		return "No spotify data found"
+	}
+		
 
 	var titleBlock = data.substring(data.indexOf("xesam:title"));
 	var title = titleBlock.split("\"")[2]
