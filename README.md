@@ -9,7 +9,7 @@ This is a quick and dirty GNOME shell extension to show the currently playing so
 
 It is also possible to download it "manually" by cloning the repository to `~/.local/share/gnome-shell/extensions`, restarting GNOME and enabling the extension using 
 ``` bash
-gnome-shell-extension-tool -e spotify-manager@ido.github.com
+gnome-extensions enable spotify-manager@ido.github.com
 ```
 This approach is not recommended, and assumes you know your way around the GNOME Extensions ecosystem.
 
