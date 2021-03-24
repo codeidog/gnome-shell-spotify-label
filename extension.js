@@ -24,7 +24,8 @@ function loadData()
 {
     //log("Spotify: Loading data")
     let [res, out, err, status] = [];
-		try {
+		try {			
+			inittoggle();
 			//Use GLib to send a dbus request with the expectation of receiving an MPRIS v2 response.
 			[res, out, err, status] = GLib.spawn_command_line_sync("dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata");
 		}
@@ -177,8 +178,7 @@ function enable()
 }
 
 function inittoggle()
-{
-	loadData()
+{	
 	var checked= false
 	let [res, out, err, status] = [];
 		try {
@@ -192,10 +192,10 @@ function inittoggle()
 		}
 		//Spotify not playing
 		catch(err) {			
-			global.log("spotifylabel: sporify not playing");			
+			//global.log("spotifylabel: sporify not playing");			
 		}
 		finally{
-			global.log("spotifylabel: Setting checked to " + checked)
+			//global.log("spotifylabel: Setting checked to " + checked)
 			songButton.set_checked(checked)
 		}
 }
