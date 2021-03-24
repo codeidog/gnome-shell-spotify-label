@@ -20,6 +20,15 @@ If you still have issues, talk to me! Create an [issue](https://github.com/mhein
 * Play/stop by clicking the song label
 * Display the currently played song label
 
+
+
+## Troubleshooting
+Run the following command to view gnome extensions logs and troubleshoot issues:
+
+```sh
+journalctl -f -o cat /usr/bin/gnome-shell 
+```
+
 ## Disclaimer
 The extension is is currently very tailored to my setup, but if you have questions or comments I'd be more than happy to answer them. There are a few configuration options available in the beginning of `extension.js`, but for more advanced tweaking your best bet is to manually code it.
 
